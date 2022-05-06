@@ -1,5 +1,7 @@
 package util
 
+import STOCK_PRICE_LEN
+import StockPrice
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import data.STOCK_COMPARATOR
@@ -434,7 +436,7 @@ object StockUtil {
         return null
     }
 
-    fun filterCaredStocks(allStocks: List<Stock>?): List<Stock>? {
+    fun filterCaredStocks(allStocks: List<Stock>?): MutableList<Stock>? {
         if (allStocks == null) {
             return null
         }
@@ -444,23 +446,24 @@ object StockUtil {
                 caredStocks.add(stock)
             }
         }
-        caredStocks.sortWith(STOCK_COMPARATOR)
         return caredStocks
     }
 
-    fun parseIndustryAndConcept(html: String?): String? {
+    fun parseIndustryAndConcept(html: String?): Array<String> {
+        val ret: Array<String> = arrayOf("", "")
         if (isEmpty(html)) {
-            return null
+            return ret
         }
         val lines = html!!.split("\r\n").toTypedArray()
         for (line in lines) {
-            var ret = parseStockIndustry(line)
-            if (ret.isNotEmpty()) {
-                ret += parseStockConcept(line)
+            val industry = parseStockIndustry(line)
+            if (industry.isNotEmpty()) {
+                ret[0] = industry
+                ret[1] = parseStockConcept(line)
                 return ret
             }
         }
-        return null
+        return ret
     }
 
     private fun parseStockIndustry(htmlLine: String): String {
@@ -485,13 +488,13 @@ object StockUtil {
             val count = matcher.groupCount()
             if (count > 0) {
                 //                Timber.v("parseStockConcept count = " + count + " " + ret);
-                return matcher.group(1).replace("&nbsp".toRegex(), "")
+                return matcher.group(1).replace("&nbsp".toRegex(), "").replace("昨日涨停;", "")
             }
         }
         return ""
     }
 
-    private fun fetchStockIndustryByWeb(code: String): String? {
+    private fun fetchStockIndustryByWeb(code: String): Array<String> {
         val html =
             fetchHtml(String.format(Urls.STOCK_INDUSTRY_URL_FINANCE, getFullCode(code)))
         //        Timber.v("fetchStockDesc " + code + " " + ret);
@@ -507,12 +510,43 @@ object StockUtil {
         for (i in 0 until total) {
             val stock = stocks[i]
             if (isEmpty(stock.industry)) {
-                val industry = fetchStockIndustryByWeb(stock.code)
-                if (!isEmpty(industry)) {
-                    stock.industry = industry!!
+                val result = fetchStockIndustryByWeb(stock.code)
+                if (result[0].isNotEmpty()) {
+                    stock.industry = result[0]
+                    stock.concept = result[1]
                     Log.d("$i/$total $stock")
                 }
             }
         }
+    }
+
+    fun parseStockPricesQt(text: String?): Array<StockPrice>? {
+        if (text.isNullOrEmpty()) {
+            return null
+        }
+        val lines = text.split("\n").reversed()
+        var i = 0
+        val list = arrayOf(StockPrice(), StockPrice(), StockPrice(), StockPrice(), StockPrice())
+        lines.map {
+            if (it.startsWith("2")) {
+                val str = it.trim().replace("\\n\\", "")
+                val arr = str.split(" ")
+                if (arr.size >= 6) {
+                    val stockPrice = list[STOCK_PRICE_LEN - i - 1]
+                    val day = arr[0]
+                    stockPrice.day = "20" + day.substring(0, 2) + "-" + day.substring(2, 4) + "-" + day.substring(4)
+                    stockPrice.open = arr[1].toFloat()
+                    stockPrice.close = arr[2].toFloat()
+                    stockPrice.high = arr[3].toFloat()
+                    stockPrice.low = arr[4].toFloat()
+                    stockPrice.volume = arr[5].toInt()
+                    i++
+                    if (i >= STOCK_PRICE_LEN) {
+                        return list
+                    }
+                }
+            }
+        }
+        return list
     }
 }

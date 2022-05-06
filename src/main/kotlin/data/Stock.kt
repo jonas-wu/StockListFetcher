@@ -27,7 +27,8 @@ data class Stock(
 
 // 45
     var totalValue: Float = 0f,
-    var industry: String = ""
+    var industry: String = "",
+    var concept: String = "",
 ) {
     constructor(code: String) : this(code, "")
 
@@ -53,4 +54,17 @@ data class Stock(
     }
 }
 
-val STOCK_COMPARATOR = java.util.Comparator { a: Stock, b: Stock -> a.pe.compareTo(b.pe) }
+val STOCK_COMPARATOR = java.util.Comparator { a: Stock, b: Stock ->
+    if (a.industry == null) {
+        if (b.industry == null) {
+            return@Comparator a.tradeValue.compareTo(b.tradeValue)
+        } else {
+            return@Comparator 1
+        }
+    }
+    val ret = a.industry.compareTo(b.industry)
+    if (ret == 0)
+        a.tradeValue.compareTo(b.tradeValue)
+    else
+        ret
+}
