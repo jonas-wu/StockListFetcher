@@ -7,8 +7,8 @@ const val ALL_STOCKS_FILE = "all-stocks.json"
 fun main(args: Array<String>) {
     println("main start")
 
+//    fetchAllStocks()
     fetchCaredStocks()
-
 
     println("main end")
 }
