@@ -1,15 +1,18 @@
 import data.STOCK_COMPARATOR
+import util.Log
 import util.StockUtil
-import util.Urls
 
 const val ALL_STOCKS_FILE = "all-stocks.json"
+const val CARED_STOCKS_FILE = "cared-stocks.json"
 
 fun main(args: Array<String>) {
     println("main start")
 
 //    fetchAllStocks()
-    fetchCaredStocks()
+//    fetchCaredStocks()
 
+    findFirstRaisingLimitStocks()
+//    StockUtil.isFirstRaisingLimit("601218")
     println("main end")
 }
 
@@ -29,10 +32,19 @@ fun fetchCaredStocks() {
     }
 }
 
-fun testFetchPrices(): Array<StockPrice>? {
-    val html = StockUtil.fetchHtml(String.format(Urls.STOCK_DAY_PRICES_URL_QT, StockUtil.getFullCode("000498")))
-    val prices = StockUtil.parseStockPricesQt(html)
-    return prices
+fun findFirstRaisingLimitStocks() {
+    val stocks = StockUtil.readStocksFromFile(CARED_STOCKS_FILE)!!
+    val total = stocks.size
+    for (i in 0 until total) {
+        val stock = stocks[i]
+//        Log.d("${i}/${total} ${stock.toShortString()}")
+        val ret = StockUtil.isFirstRaisingLimit(stock.code)
+        if (ret) {
+//            Log.d("${i}/${total} ${stock}")
+            Log.d("$stock")
+//            break
+        }
+    }
 }
 
 val testPrices = arrayOf(

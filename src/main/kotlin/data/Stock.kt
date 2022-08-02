@@ -33,15 +33,20 @@ data class Stock(
     constructor(code: String) : this(code, "")
 
     override fun toString(): String {
+        return code +
+                " " + name +
+//                " " + time.substring(4, 8) +
+                " " + pe +
+                " " + pb +
+                " " + tradeValue +
+                " " + totalValue +
+                " " + industry + concept.substring(0, Math.min(concept.length, 25))
+    }
+
+    fun toShortString(): String {
         return "Stock{" +
                 "code='" + code + '\'' +
                 ", name='" + name + '\'' +
-                ", time='" + time + '\'' +
-                ", pe=" + pe +
-                ", pb=" + pb +
-                ", tradeValue=" + tradeValue +
-                ", totalValue=" + totalValue +
-                industry +
                 '}'
     }
 
@@ -49,7 +54,8 @@ data class Stock(
         return pb < StockConst.MAX_STOCK_PB
                 && pe > 0 && pe < StockConst.MAX_STOCK_PE
                 && tradeValue < StockConst.MAX_STOCK_TRADE_VALUE
-                && tradeValue < StockConst.MAX_STOCK_TOTAL_VALUE
+                && totalValue > StockConst.MIN_STOCK_TOTAL_VALUE
+                && totalValue < StockConst.MAX_STOCK_TOTAL_VALUE
                 && !name.contains("ST")
     }
 }

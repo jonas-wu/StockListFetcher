@@ -1,10 +1,8 @@
 package util
 
-import STOCK_PRICE_LEN
 import StockPrice
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import data.STOCK_COMPARATOR
 import data.Stock
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -520,19 +518,21 @@ object StockUtil {
         }
     }
 
-    fun parseStockPricesQt(text: String?): Array<StockPrice>? {
+    fun parseStockPricesQt(text: String?, priceSize: Int): Array<StockPrice>? {
         if (text.isNullOrEmpty()) {
             return null
         }
         val lines = text.split("\n").reversed()
         var i = 0
-        val list = arrayOf(StockPrice(), StockPrice(), StockPrice(), StockPrice(), StockPrice())
+        val list = Array(priceSize) {
+            StockPrice()
+        }
         lines.map {
             if (it.startsWith("2")) {
                 val str = it.trim().replace("\\n\\", "")
                 val arr = str.split(" ")
                 if (arr.size >= 6) {
-                    val stockPrice = list[STOCK_PRICE_LEN - i - 1]
+                    val stockPrice = list[i]
                     val day = arr[0]
                     stockPrice.day = "20" + day.substring(0, 2) + "-" + day.substring(2, 4) + "-" + day.substring(4)
                     stockPrice.open = arr[1].toFloat()
@@ -541,12 +541,119 @@ object StockUtil {
                     stockPrice.low = arr[4].toFloat()
                     stockPrice.volume = arr[5].toInt()
                     i++
-                    if (i >= STOCK_PRICE_LEN) {
+                    if (i >= priceSize) {
                         return list
                     }
                 }
             }
         }
         return list
+    }
+
+    fun fetchPricesByWebQt(code: String, priceSize: Int = 5): Array<StockPrice>? {
+//        Log.v("fetchPricesByWebQt: $code")
+        val fullCode = StockUtil.getFullCode(code)
+        try {
+            val content = fetchHtml(String.format(Urls.STOCK_DAY_PRICES_URL_QT, fullCode))
+            if (!TextUtils.isEmpty(content)) {
+//                Log.d("fetchPricesByWebQt $fullCode")
+                try {
+                    val prices = StockUtil.parseStockPricesQt(content, priceSize)
+                    if (prices == null || prices.size < priceSize) {
+                        return null
+                    }
+                    return prices
+                } catch (e: Exception) {
+                    Log.e("fetchPricesByWebQt error: $e\n$content")
+//                    showMsg(e.message)
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("fetchPricesByWebQt error: $e")
+//            showMsg(e.message)
+        }
+        return null
+    }
+
+    public fun isFirstRaisingLimit(prices: Array<StockPrice>): Boolean {
+        var count = 0
+        var maxVolumn = 0
+        for (i in 0..(prices.size - 2)) {
+            val price = prices[i]
+            val lastPrice = prices[i + 1]
+            val percent = (price.close - lastPrice.close) / lastPrice.close * 100
+            if (percent > 9.5f) {
+                count++
+            }
+            if (price.volume > maxVolumn) {
+                maxVolumn = price.volume
+            }
+            if (count > 2) {
+                break
+            }
+        }
+        var ret = count in 1..2
+        if (ret) {
+            val p = (prices[0].close - prices[0].open) / prices[0].open * 100
+            val p2 = (prices[1].close - prices[1].open) / prices[1].open * 100
+            val p3 = (prices[2].close - prices[2].open) / prices[2].open * 100
+            val case1 = (p > 0f && p2 < 0f)
+            val case2 = (p > 0f && p2 > 0f && p3 < 0f)
+            ret = case1 || case2
+            if (!ret) {
+                return false;
+            }
+
+            val arr = prices.copyOf()
+            arr.sortBy { stockPrice -> stockPrice.volume }
+            val volumn = if (case1) prices[1].volume else prices[2].volume
+            Log.d("${prices[0].day} p=$p v=${prices[0].volume}")
+            Log.d("${prices[1].day} p=$p2 v=${prices[1].volume}")
+            Log.d("${prices[2].day} p=$p3 v=${prices[2].volume}")
+            Log.d("max=${maxVolumn} min=${arr[0].volume} ${arr[1].volume}")
+
+            if (volumn <= arr[0].volume || volumn <= arr[1].volume) {
+//                Log.d("p=$p v=${prices[0].volume}")
+//                Log.d("p2=$p2 v=${prices[1].volume}")
+//                Log.d("p3=$p3 v=${prices[2].volume}")
+                ret = true
+            } else {
+                ret = false
+            }
+        }
+        return ret
+    }
+
+    public fun isFirstRaisingLimit2(prices: Array<StockPrice>): Boolean {
+        var count = 0
+        var str = ""
+        for (i in 0..(prices.size - 2)) {
+            val price = prices[i]
+            val lastPrice = prices[i + 1]
+            val percent = (price.close - lastPrice.close) / lastPrice.close * 100
+            if (percent > 9.5f) {
+                if (i < 3) {
+                    return false
+                }
+                if (count > 0) {
+                    return false
+                }
+                count++
+                str = "${price.day} percent=$percent"
+
+            }
+        }
+        val ret = count == 1
+        if (ret) {
+//            Log.d(str)
+        }
+        return ret
+    }
+
+    public fun isFirstRaisingLimit(code: String): Boolean {
+        val fullCode = StockUtil.getFullCode(code)
+        val prices = StockUtil.fetchPricesByWebQt(fullCode, 30)
+        val ret = StockUtil.isFirstRaisingLimit2(prices!!)
+        return ret
     }
 }
