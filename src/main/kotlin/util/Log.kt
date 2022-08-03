@@ -1,8 +1,12 @@
 package util
 
 object Log {
+    const val DEBUG = false
+
     fun v(s: String) {
-        println(s)
+        if (DEBUG) {
+            println(s)
+        }
     }
 
     fun d(s: String) {

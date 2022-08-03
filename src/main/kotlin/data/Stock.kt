@@ -29,11 +29,13 @@ data class Stock(
     var totalValue: Float = 0f,
     var industry: String = "",
     var concept: String = "",
+    var priceDay: String = "",
 ) {
     constructor(code: String) : this(code, "")
 
     override fun toString(): String {
-        return code +
+        return priceDay.substring(5) +
+                " " + code +
                 " " + name +
 //                " " + time.substring(4, 8) +
                 " " + pe +

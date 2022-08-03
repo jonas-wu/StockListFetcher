@@ -38,7 +38,7 @@ fun findFirstRaisingLimitStocks() {
     for (i in 0 until total) {
         val stock = stocks[i]
 //        Log.d("${i}/${total} ${stock.toShortString()}")
-        val ret = StockUtil.isFirstRaisingLimit(stock.code)
+        val ret = StockUtil.isFirstRaisingLimit(stock)
         if (ret) {
 //            Log.d("${i}/${total} ${stock}")
             Log.d("$stock")
