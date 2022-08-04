@@ -1,9 +1,9 @@
 package util
 
-import StockPrice
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import data.Stock
+import data.StockPrice
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import util.StockConst.PATTEN_STOCK_CONCEPT
@@ -663,7 +663,7 @@ object StockUtil {
         val size = prices.size
         var lastRiseIndex = -1
 
-        for (i in 0 until Math.min(size, 15)) {
+        for (i in 0 until Math.min(size, 20)) {
             val price = prices[i]
             val lastPrice = prices[i + 1]
             val percent = (price.close - lastPrice.close) / lastPrice.close * 100
@@ -694,7 +694,7 @@ object StockUtil {
             return false
         }
 
-        for (i in (lastRiseIndex+ 2) until Math.min(lastRiseIndex + 10, size)) {
+        for (i in (lastRiseIndex + 3) until Math.min(lastRiseIndex + 10, size)) {
             val price = prices[i]
             val lastPrice = prices[i + 1]
             val percent = (price.close - lastPrice.close) / lastPrice.close * 100
@@ -708,7 +708,7 @@ object StockUtil {
 
     public fun isFirstRaisingLimit(stock: Stock): Boolean {
         val fullCode = StockUtil.getFullCode(stock.code)
-        val prices = StockUtil.fetchPricesByWebQt(fullCode, 30)
+        val prices = StockUtil.fetchPricesByWebQt(fullCode, 40)
         if (!prices.isNullOrEmpty()) {
             stock.priceDay = prices[0].day
         }
