@@ -550,8 +550,17 @@ object StockUtil {
         return list
     }
 
+    fun fetchPricesByWebQt(stock: Stock, priceSize: Int = 5): Array<StockPrice>? {
+        val prices = fetchPricesByWebQt(stock.code, priceSize)
+        if (!prices.isNullOrEmpty()) {
+            stock.prices = prices
+            stock.priceDay = prices[0].day
+        }
+        return prices
+    }
+
     fun fetchPricesByWebQt(code: String, priceSize: Int = 5): Array<StockPrice>? {
-        Log.v("fetchPricesByWebQt: $code")
+        Log.v("fetchPricesByWebQt: ${code}")
         val fullCode = StockUtil.getFullCode(code)
         try {
             val content = fetchHtml(String.format(Urls.STOCK_DAY_PRICES_URL_QT, fullCode))
@@ -575,7 +584,7 @@ object StockUtil {
         return null
     }
 
-    public fun isFirstRaisingLimit(prices: Array<StockPrice>): Boolean {
+    private fun isFirstRaisingLimit(prices: Array<StockPrice>): Boolean {
         var count = 0
         var maxVolumn = 0
         for (i in 0..(prices.size - 2)) {
@@ -624,41 +633,7 @@ object StockUtil {
         return ret
     }
 
-    public fun isFirstRaisingLimit2(prices: Array<StockPrice>): Boolean {
-        var count = 0
-        var str = ""
-        var maxPrice = 0f
-        for (i in 0..(prices.size - 2)) {
-            val price = prices[i]
-            val lastPrice = prices[i + 1]
-            val percent = (price.close - lastPrice.close) / lastPrice.close * 100
-            if (percent > 9.5f) {
-                if (i < 3) {
-                    return false
-                }
-                if (count > 0) {
-                    return false
-                }
-                count++
-                maxPrice = price.close
-//                str = "${price.day} percent=$percent"
-
-            }
-        }
-        var ret = count == 1
-        if (ret) {
-            for (i in 0..3) {
-                val price = prices[i]
-                if (price.close > maxPrice) {
-                    ret = false
-                    break
-                }
-            }
-        }
-        return ret
-    }
-
-    public fun isFirstRaisingLimit3(prices: Array<StockPrice>): Boolean {
+    private fun firstRaiseLimitAndFall(prices: Array<StockPrice>): Boolean {
         var lastRiseLimitPrice = 0f
         val size = prices.size
         var lastRiseIndex = -1
@@ -706,13 +681,65 @@ object StockUtil {
         return true
     }
 
-    public fun isFirstRaisingLimit(stock: Stock): Boolean {
-        val fullCode = StockUtil.getFullCode(stock.code)
-        val prices = StockUtil.fetchPricesByWebQt(fullCode, 40)
-        if (!prices.isNullOrEmpty()) {
-            stock.priceDay = prices[0].day
+    private fun firstRaiseLimit(prices: Array<StockPrice>): Boolean {
+        var lastRiseLimitPrice: StockPrice? = null
+        val size = prices.size
+        var lastRiseIndex = -1
+
+        for (i in 0 until Math.min(size, 20)) {
+            val price = prices[i]
+            val lastPrice = prices[i + 1]
+            val percent = (price.close - lastPrice.close) / lastPrice.close * 100
+            if (percent > 9.5f) {
+                lastRiseIndex = i
+                lastRiseLimitPrice = price
+                Log.v("lastRiseIndex=$lastRiseIndex lastRiseLimitPrice=$lastRiseLimitPrice")
+                break
+            }
         }
-        val ret = StockUtil.isFirstRaisingLimit3(prices!!)
-        return ret
+
+        if (lastRiseIndex <= 3) {
+            return false;
+        }
+
+        val todayPrice = prices[0]
+        val todayPercent = (todayPrice.close - lastRiseLimitPrice!!.close) / lastRiseLimitPrice.close * 100
+        Log.v("todayPercent=$todayPercent")
+        if (todayPercent > 10f) {
+            return false
+        }
+
+        for (i in (lastRiseIndex + 3) until Math.min(lastRiseIndex + 10, size)) {
+            val price = prices[i]
+            val lastPrice = prices[i + 1]
+            val percent = (price.close - lastPrice.close) / lastPrice.close * 100
+            Log.v("i=$i percent=$percent")
+            if (percent > 9.5f) {
+                return false
+            }
+        }
+        return true
+    }
+
+    public fun isFirstRaiseLimit(stock: Stock): Boolean {
+        var prices = stock.prices
+        if (prices.isNullOrEmpty()) {
+            prices = fetchPricesByWebQt(stock, 40)
+        }
+        if (prices.isNullOrEmpty()) {
+            return false
+        }
+        return firstRaiseLimit(prices)
+    }
+
+    public fun isFirstRaiseLimitAndFall(stock: Stock): Boolean {
+        var prices = stock.prices
+        if (prices.isNullOrEmpty()) {
+            prices = fetchPricesByWebQt(stock, 40)
+        }
+        if (prices.isNullOrEmpty()) {
+            return false
+        }
+        return firstRaiseLimitAndFall(prices)
     }
 }

@@ -30,6 +30,7 @@ data class Stock(
     var industry: String = "",
     var concept: String = "",
     var priceDay: String = "",
+    var prices: Array<StockPrice>? = null,
 ) {
     constructor(code: String) : this(code, "")
 
@@ -38,11 +39,11 @@ data class Stock(
                 " " + code +
                 " " + name +
 //                " " + time.substring(4, 8) +
-                " " + pe +
-                " " + pb +
-                " " + tradeValue +
-                " " + totalValue +
-                " " + industry + concept.substring(0, Math.min(concept.length, 25))
+                "\tPE=\t" + pe +
+                "\tPB=\t" + pb +
+                "\t" + tradeValue +
+                "\t" + totalValue +
+                "\t" + industry + concept
     }
 
     fun toShortString(): String {
@@ -72,7 +73,7 @@ val STOCK_COMPARATOR = java.util.Comparator { a: Stock, b: Stock ->
     }
     val ret = a.industry.compareTo(b.industry)
     if (ret == 0)
-        a.tradeValue.compareTo(b.tradeValue)
+        a.pe.compareTo(b.pe)
     else
         ret
 }
