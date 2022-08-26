@@ -35,7 +35,11 @@ data class Stock(
     constructor(code: String) : this(code, "")
 
     override fun toString(): String {
-        return priceDay.substring(5) +
+        var day = ""
+        if (priceDay.isNotEmpty()) {
+            day = priceDay.substring(5)
+        }
+        return day +
                 " " + code +
                 " " + name +
 //                " " + time.substring(4, 8) +

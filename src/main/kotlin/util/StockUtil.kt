@@ -686,7 +686,7 @@ object StockUtil {
         val size = prices.size
         var lastRiseIndex = -1
 
-        for (i in 0 until Math.min(size, 20)) {
+        for (i in 0 until Math.min(size, 10)) {
             val price = prices[i]
             val lastPrice = prices[i + 1]
             val percent = (price.close - lastPrice.close) / lastPrice.close * 100
@@ -709,7 +709,47 @@ object StockUtil {
             return false
         }
 
-        for (i in (lastRiseIndex + 3) until Math.min(lastRiseIndex + 10, size)) {
+        for (i in (lastRiseIndex + 3) until Math.min(lastRiseIndex + 20, size - 1)) {
+            val price = prices[i]
+            val lastPrice = prices[i + 1]
+            val percent = (price.close - lastPrice.close) / lastPrice.close * 100
+            Log.v("i=$i percent=$percent")
+            if (percent > 9.5f) {
+                return false
+            }
+        }
+        return true
+    }
+
+    private fun firstRaiseLimitOnly(prices: Array<StockPrice>): Boolean {
+        var lastRiseLimitPrice: StockPrice? = null
+        val size = prices.size
+        var lastRiseIndex = -1
+
+        for (i in 0 until Math.min(size, 6)) {
+            val price = prices[i]
+            val lastPrice = prices[i + 1]
+            val percent = (price.close - lastPrice.close) / lastPrice.close * 100
+            if (percent > 9.5f) {
+                lastRiseIndex = i
+                lastRiseLimitPrice = price
+                Log.v("lastRiseIndex=$lastRiseIndex lastRiseLimitPrice=$lastRiseLimitPrice")
+                break
+            }
+        }
+
+        if (lastRiseIndex <= 3) {
+            return false;
+        }
+
+        val todayPrice = prices[0]
+        val todayPercent = (todayPrice.close - lastRiseLimitPrice!!.close) / lastRiseLimitPrice.close * 100
+        Log.v("todayPercent=$todayPercent")
+        if (todayPercent > 10f) {
+            return false
+        }
+
+        for (i in (lastRiseIndex + 3) until (size - 1)) {
             val price = prices[i]
             val lastPrice = prices[i + 1]
             val percent = (price.close - lastPrice.close) / lastPrice.close * 100
@@ -741,5 +781,16 @@ object StockUtil {
             return false
         }
         return firstRaiseLimitAndFall(prices)
+    }
+
+    public fun isFirstRaiseLimitOnly(stock: Stock): Boolean {
+        var prices = stock.prices
+        if (prices.isNullOrEmpty()) {
+            prices = fetchPricesByWebQt(stock, 50)
+        }
+        if (prices.isNullOrEmpty()) {
+            return false
+        }
+        return firstRaiseLimitOnly(prices)
     }
 }
